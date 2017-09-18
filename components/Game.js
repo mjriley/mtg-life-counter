@@ -10,7 +10,12 @@ export default class Game extends React.Component {
         super(props);
 
         this.state = {
-            players: ['Alan', 'Bobby', 'Carl', 'David'],
+            players: [
+                { name: 'Alan', life: 40 },
+                { name: 'Bobby', life: 40 },
+                { name: 'Carl', life: 20 },
+                { name: 'David', life: 45 }
+            ],
             activePlayerIndex: 0,
             isPaused: true,
             turnTime: 0
@@ -43,6 +48,8 @@ export default class Game extends React.Component {
         }
     }
 
+    // NOTE -- this doesn't actually resume the timer; each resume resets the timer back to 0.
+    // implement https://stackoverflow.com/a/3969760 when able
     resumeTimer() {
         this.stopTimer();
         this.timer = setInterval(this.tickPlayer, 1000);
@@ -63,12 +70,38 @@ export default class Game extends React.Component {
         });
     }
 
+    handleLifeChange(index, type) {
+        const player = this.state.players[index];
+        const updatedLife = type === 'inc' ? player.life + 1 : player.life - 1;
+
+        const updatedPlayer = _.assign(player, { life: updatedLife });
+        const newPlayers = [
+            ...this.state.players.slice(0, index),
+            updatedPlayer,
+            ...this.state.players.slice(index + 1)
+        ];
+
+        this.setState({
+            players: newPlayers
+        });
+    }
+
     renderPlayer(index) {
         const isActive = index === this.state.activePlayerIndex;
         const style = isActive ? styles.active : styles.passive;
-        const name = this.state.players[index];
+        const player = this.state.players[index];
 
-        return <PlayerView style={style} name={name} active={isActive} />;
+        const callback = this.handleLifeChange.bind(this, index);
+
+        return (
+            <PlayerView
+                style={style}
+                name={player.name}
+                life={player.life}
+                active={isActive}
+                onLifeChange={callback}
+            />
+        );
     }
 
     render() {
