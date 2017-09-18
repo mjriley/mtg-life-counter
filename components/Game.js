@@ -63,55 +63,24 @@ export default class Game extends React.Component {
         });
     }
 
+    renderPlayer(index) {
+        const isActive = index === this.state.activePlayerIndex;
+        const style = isActive ? styles.active : styles.passive;
+        const name = this.state.players[index];
+
+        return <PlayerView style={style} name={name} active={isActive} />;
+    }
+
     render() {
         return (
             <View style={styles.main}>
                 <View style={{ flex: 1, flexDirection: 'row' }}>
-                    <PlayerView
-                        style={
-                            this.state.activePlayerIndex === 0 ? (
-                                styles.active
-                            ) : (
-                                styles.passive
-                            )
-                        }
-                        name={this.state.players[0]}
-                    />
-                    <PlayerView
-                        style={
-                            this.state.activePlayerIndex === 1 ? (
-                                styles.active
-                            ) : (
-                                styles.passive
-                            )
-                        }
-                        name={this.state.players[1]}
-                        active={true}
-                    />
+                    {this.renderPlayer(0)}
+                    {this.renderPlayer(1)}
                 </View>
                 <View style={{ flexDirection: 'row', flex: 1 }}>
-                    <PlayerView
-                        style={
-                            this.state.activePlayerIndex === 3 ? (
-                                styles.active
-                            ) : (
-                                styles.passive
-                            )
-                        }
-                        name={this.state.players[3]}
-                        active={false}
-                    />
-                    <PlayerView
-                        style={
-                            this.state.activePlayerIndex === 2 ? (
-                                styles.active
-                            ) : (
-                                styles.passive
-                            )
-                        }
-                        name={this.state.players[2]}
-                        active={false}
-                    />
+                    {this.renderPlayer(3)}
+                    {this.renderPlayer(2)}
                 </View>
                 <TurnComponent
                     style={styles.timer}
