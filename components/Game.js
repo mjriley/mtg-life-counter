@@ -1,9 +1,11 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Button } from 'react-native';
 import PlayerView from './PlayerView';
 import TurnComponent from './TurnComponent';
 import _ from 'lodash';
 import styles from '../styles/base';
+
+import NameEntry from './NameEntry';
 
 export default class Game extends React.Component {
     constructor(props) {
@@ -18,13 +20,16 @@ export default class Game extends React.Component {
             ],
             activePlayerIndex: 0,
             isPaused: true,
-            turnTime: 0
+            turnTime: 0,
+            showNameEntry: false
         };
 
         this.passTurn = this.passTurn.bind(this);
         this.resumeTimer = this.resumeTimer.bind(this);
         this.tickPlayer = this.tickPlayer.bind(this);
         this.togglePause = this.togglePause.bind(this);
+
+        this.toggleNameEntry = this.toggleNameEntry.bind(this);
     }
 
     componentWillUnmount() {
@@ -104,10 +109,19 @@ export default class Game extends React.Component {
         );
     }
 
+    toggleNameEntry() {
+        this.setState({ showNameEntry: !this.state.showNameEntry });
+    }
+
     render() {
         return (
             <View style={styles.main}>
-                <View style={{ flex: 1, flexDirection: 'row' }}>
+                <NameEntry
+                    visible={this.state.showNameEntry}
+                    onClose={this.toggleNameEntry}
+                />
+                <Button title="Press Me!" onPress={this.toggleNameEntry} />
+                {/* <View style={{ flex: 1, flexDirection: 'row' }}>
                     {this.renderPlayer(0)}
                     {this.renderPlayer(1)}
                 </View>
@@ -121,7 +135,7 @@ export default class Game extends React.Component {
                     isPaused={this.state.isPaused}
                     onPass={this.passTurn}
                     onPause={this.togglePause}
-                />
+                /> */}
             </View>
         );
     }
