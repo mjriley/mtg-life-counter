@@ -40,20 +40,11 @@ export default class TurnScreen extends React.Component {
         });
 
         this.state = {
-            init: false,
-            baseOffsetX: 0,
-            baseOffsetY: 0,
-            x: 0,
-            y: 0,
-            circleScale: new Animated.Value(1),
-            numTouches: 0,
             trackedTouches: {},
             winnerFound: false,
             lastUpdate: 0,
             center: null
         };
-
-        this.upscale = Animated.timing();
     }
 
     reset() {
@@ -80,10 +71,6 @@ export default class TurnScreen extends React.Component {
     }
 
     _handleLayout(e) {
-        // const { x, y } = e.nativeEvent.layout;
-        // this.setState({ x, y, init: true });
-        // this.setState({ init: true });
-
         const { width, height } = e.nativeEvent.layout;
         this.setState({ center: [width / 2.0, height / 2.0] });
     }
@@ -186,8 +173,6 @@ export default class TurnScreen extends React.Component {
             }
         );
 
-        console.log('final touches are: ', finalTouches);
-
         this.setState({ winnerFound: true, trackedTouches: finalTouches });
         // for each other touch, calculate the angle relative to the base line
         // order each identier/angle combination
@@ -210,19 +195,6 @@ export default class TurnScreen extends React.Component {
         });
     }
 
-    drawCenter() {
-        if (this.state.center) {
-            return (
-                <GrowingCircle
-                    x={this.state.center[0]}
-                    y={this.state.center[1]}
-                    lastUpdate={1}
-                    isWinner={false}
-                />
-            );
-        }
-    }
-
     handlePress() {
         this.setState({ lastUpdate: this.state.lastUpdate + 1 });
     }
@@ -237,11 +209,7 @@ export default class TurnScreen extends React.Component {
                 >
                     {this.drawCircles()}
                 </View>
-                <Button
-                    title="Reset"
-                    style={styles.button}
-                    onPress={this.reset}
-                />
+                <Button title="Reset" onPress={this.reset} />
             </View>
         );
     }
@@ -259,21 +227,5 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1
-    },
-    touch: {
-        flex: 1,
-        backgroundColor: 'red'
-    },
-    circle: {
-        width: CIRCLE_SIZE,
-        height: CIRCLE_SIZE,
-        borderColor: 'black',
-        borderWidth: 5,
-        borderRadius: CIRCLE_SIZE / 2,
-        position: 'absolute',
-        backgroundColor: 'purple'
-    },
-    button: {
-        height: 100
     }
 });
