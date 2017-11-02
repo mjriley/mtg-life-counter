@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-    View,
-    StyleSheet,
-    Text,
-    TouchableWithoutFeedback,
-    PanResponder,
-    Animated,
-    Easing
-} from 'react-native';
+import { View, StyleSheet, PanResponder } from 'react-native';
 
 import { Button } from 'react-native'; // comment out -- for testing
 
@@ -26,7 +18,6 @@ export default class TurnScreen extends React.Component {
         this._handleResponderGrant = this._handleResponderGrant.bind(this);
         this._handleResponderMove = this._handleResponderMove.bind(this);
         this._handleResponderRelease = this._handleResponderRelease.bind(this);
-        this._handleLayout = this._handleLayout.bind(this);
 
         this.calculateTurns = this.calculateTurns.bind(this);
         this.reset = this.reset.bind(this);
@@ -42,8 +33,7 @@ export default class TurnScreen extends React.Component {
         this.state = {
             trackedTouches: {},
             winnerFound: false,
-            lastUpdate: 0,
-            center: null
+            lastUpdate: 0
         };
     }
 
@@ -68,11 +58,6 @@ export default class TurnScreen extends React.Component {
                 [identifier]: { x, y, winner: false }
             }
         });
-    }
-
-    _handleLayout(e) {
-        const { width, height } = e.nativeEvent.layout;
-        this.setState({ center: [width / 2.0, height / 2.0] });
     }
 
     _handleResponderMove(e, gestureState) {
@@ -113,41 +98,6 @@ export default class TurnScreen extends React.Component {
         const winningIndex = getRandomNumberBetween(0, identifiers.length);
         const winningId = identifiers[winningIndex];
         let winningEntry = this.state.trackedTouches[winningId];
-        // winningEntry = _.assign(winningEntry, { winner: true, order: 0 });
-
-        // const newTouches = _.assign(this.state.trackedTouches, {
-        //     [winningId]: winningEntry
-        // });
-
-        // this.setState({ winnerFound: true, trackedTouches: newTouches });
-
-        // establish the line between the center of the screen and the winning touch to be 0 degrees
-        const center = { x: this.state.center[0], y: this.state.center[1] };
-
-        const baseVector = {
-            x: winningEntry.x - center.x,
-            y: winningEntry.y - center.y
-        };
-
-        const baseLength = Math.sqrt(
-            baseVector.x * baseVector.x + baseVector.y * baseVector.y
-        );
-
-        // const remainingTouches = _.omit(this.state.trackedTouches, [winningId]);
-        // const angles = _.mapValues(remainingTouches, touch => {
-        //     // calculate the vector
-        //     const vector = {
-        //         x: touch.x - this.state.center.x,
-        //         y: touch.y - this.state.center.y
-        //     };
-        //     const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
-        //     const crossProduct =
-        //         baseVector.x * vector.y + baseVector.y * vector.y;
-        //     const lengthProduct = baseLength * length;
-        //     const angle = Math.acos(crossProduct / lengthProduct);
-        //     const angleInDegrees = angle * 180 / Math.PI;
-        //     return angleInDegrees;
-        // });
 
         const finalTouches = _.mapValues(
             this.state.trackedTouches,
@@ -156,27 +106,11 @@ export default class TurnScreen extends React.Component {
                     return _.assign(winningEntry, { winner: true, angle: 0 });
                 }
 
-                const vector = {
-                    x: touch.x - center.x,
-                    y: touch.y - center.y
-                };
-                const length = Math.sqrt(
-                    vector.x * vector.x + vector.y * vector.y
-                );
-                const crossProduct =
-                    baseVector.x * vector.x + baseVector.y * vector.y;
-                const lengthProduct = baseLength * length;
-                const angle = Math.acos(crossProduct / lengthProduct);
-                const angleInDegrees = angle * 180 / Math.PI;
-
-                return _.assign(touch, { angle: angleInDegrees });
+                return touch;
             }
         );
 
         this.setState({ winnerFound: true, trackedTouches: finalTouches });
-        // for each other touch, calculate the angle relative to the base line
-        // order each identier/angle combination
-        // assign each touch a turn order
     }
 
     drawCircles() {
@@ -195,18 +129,10 @@ export default class TurnScreen extends React.Component {
         });
     }
 
-    handlePress() {
-        this.setState({ lastUpdate: this.state.lastUpdate + 1 });
-    }
-
     render() {
         return (
             <View style={styles.container}>
-                <View
-                    onLayout={this._handleLayout}
-                    style={styles.main}
-                    {...this._panResponder.panHandlers}
-                >
+                <View style={styles.main} {...this._panResponder.panHandlers}>
                     {this.drawCircles()}
                 </View>
                 <Button title="Reset" onPress={this.reset} />
