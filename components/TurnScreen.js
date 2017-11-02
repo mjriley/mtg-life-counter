@@ -9,7 +9,15 @@ import {
     Easing
 } from 'react-native';
 
+import { Button } from 'react-native'; // comment out -- for testing
+
+import GrowingCircle from './GrowingCircle';
+
 import _ from 'lodash';
+
+function getRandomNumberBetween(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+}
 
 export default class TurnScreen extends React.Component {
     constructor(props) {
@@ -19,6 +27,9 @@ export default class TurnScreen extends React.Component {
         this._handleResponderMove = this._handleResponderMove.bind(this);
         this._handleResponderRelease = this._handleResponderRelease.bind(this);
         this._handleLayout = this._handleLayout.bind(this);
+
+        this.calculateTurns = this.calculateTurns.bind(this);
+        this.reset = this.reset.bind(this);
 
         this._panResponder = PanResponder.create({
             onStartShouldSetPanResponder: () => true,
@@ -36,144 +47,201 @@ export default class TurnScreen extends React.Component {
             y: 0,
             circleScale: new Animated.Value(1),
             numTouches: 0,
-            trackedTouches: {}
+            trackedTouches: {},
+            winnerFound: false,
+            lastUpdate: 0,
+            center: null
         };
 
         this.upscale = Animated.timing();
     }
 
+    reset() {
+        this.setState({
+            winnerFound: false,
+            trackedTouches: {}
+        });
+    }
+
     _handleResponderGrant(e, gestureState) {
-        // account for the previous offset
-        // const prevX = this.state.x;
-        // const prevY = this.state.y;
-        // let circleScale = new Animated.Value(1);
-        // let { locationX: x, locationY: y } = e.nativeEvent;
-        // let { dx: x, dy: y } = gestureState;
-        // console.log(`x is: ${x} and y is: ${y}`);
-        // this.setState({ trackedTouches: [{ x, y }] });
-        // this.setState({
-        //     baseOffsetX: this.state.x,
-        //     baseOffsetY: this.state.y,
-        //     circleScale
-        // });
-        // const anim = Animated.timing(circleScale, {
-        //     toValue: MAX_CIRCLE_SCALE,
-        //     duration: CIRCLE_SCALE_DURATION,
-        //     easing: Easing.linear
-        // });
-        // anim.start();
+        if (this.state.winnerFound) {
+            return;
+        }
+
+        const { pageX: x, pageY: y, identifier } = e.nativeEvent;
+        // start a timer for when the turns are locked in
+        this.timer = setTimeout(this.calculateTurns, TIME_TO_PICK);
+
+        this.setState({
+            trackedTouches: {
+                [identifier]: { x, y, winner: false }
+            }
+        });
     }
 
     _handleLayout(e) {
         // const { x, y } = e.nativeEvent.layout;
         // this.setState({ x, y, init: true });
-        this.setState({ init: true });
+        // this.setState({ init: true });
+
+        const { width, height } = e.nativeEvent.layout;
+        this.setState({ center: [width / 2.0, height / 2.0] });
     }
 
     _handleResponderMove(e, gestureState) {
-        // const { moveX: x, moveY: y, numActiveTouches, stateID } = gestureState;
-        // const { locationX: x, locationY: y } = e.nativeEvent;
-        // if (numTouches !== this.state.numTouches) {
-        // console.log('touches are: ', e.nativeEvent.touches);
-        // console.log('changed touches are: ', e.nativeEvent.changedTouches);
+        if (this.state.winnerFound) {
+            // no point in tracking anything if we're already done
+            return;
+        }
 
         touches = _.fromPairs(
             _.map(e.nativeEvent.touches, touch => [
                 touch.identifier,
                 {
                     x: touch.pageX,
-                    y: touch.pageY
+                    y: touch.pageY,
+                    winner: false
                 }
             ])
         );
-        // }
 
         this.setState({ trackedTouches: touches });
-
-        // const { dx, dy } = gestureState;
-        // const numTouches = e.nativeEvent.touches.length;
-        // // const touchMap = _.map(e.nativeEvent.touches, (touch => [touch.identifier, touch.);
-        // if (numTouches !== this.state.numTouches) {
-        //     console.log('change in number of touches: ', numTouches);
-        //     console.log('identifier of touch is: ', e.nativeEvent.touches[0]);
-        //     console.log('dx and dy is: ', dx, dy);
-        // }
-        // this.setState({
-        //     x: this.state.baseOffsetX + dx,
-        //     y: this.state.baseOffsetY + dy,
-        //     numTouches
-        // });
     }
 
     _handleResponderRelease(e, gestureState) {
-        this.setState({ trackedTouches: {} });
+        if (this.state.winnerFound) {
+            return; // preserve what is displayed
+        }
+
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
+        this.setState({ winnerFound: false, trackedTouches: {} });
+    }
+
+    calculateTurns() {
+        const identifiers = _.keys(this.state.trackedTouches);
+        const winningIndex = getRandomNumberBetween(0, identifiers.length);
+        const winningId = identifiers[winningIndex];
+        let winningEntry = this.state.trackedTouches[winningId];
+        // winningEntry = _.assign(winningEntry, { winner: true, order: 0 });
+
+        // const newTouches = _.assign(this.state.trackedTouches, {
+        //     [winningId]: winningEntry
+        // });
+
+        // this.setState({ winnerFound: true, trackedTouches: newTouches });
+
+        // establish the line between the center of the screen and the winning touch to be 0 degrees
+        const center = { x: this.state.center[0], y: this.state.center[1] };
+
+        const baseVector = {
+            x: winningEntry.x - center.x,
+            y: winningEntry.y - center.y
+        };
+
+        const baseLength = Math.sqrt(
+            baseVector.x * baseVector.x + baseVector.y * baseVector.y
+        );
+
+        // const remainingTouches = _.omit(this.state.trackedTouches, [winningId]);
+        // const angles = _.mapValues(remainingTouches, touch => {
+        //     // calculate the vector
+        //     const vector = {
+        //         x: touch.x - this.state.center.x,
+        //         y: touch.y - this.state.center.y
+        //     };
+        //     const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+        //     const crossProduct =
+        //         baseVector.x * vector.y + baseVector.y * vector.y;
+        //     const lengthProduct = baseLength * length;
+        //     const angle = Math.acos(crossProduct / lengthProduct);
+        //     const angleInDegrees = angle * 180 / Math.PI;
+        //     return angleInDegrees;
+        // });
+
+        const finalTouches = _.mapValues(
+            this.state.trackedTouches,
+            (touch, key) => {
+                if (key === winningId) {
+                    return _.assign(winningEntry, { winner: true, angle: 0 });
+                }
+
+                const vector = {
+                    x: touch.x - center.x,
+                    y: touch.y - center.y
+                };
+                const length = Math.sqrt(
+                    vector.x * vector.x + vector.y * vector.y
+                );
+                const crossProduct =
+                    baseVector.x * vector.x + baseVector.y * vector.y;
+                const lengthProduct = baseLength * length;
+                const angle = Math.acos(crossProduct / lengthProduct);
+                const angleInDegrees = angle * 180 / Math.PI;
+
+                return _.assign(touch, { angle: angleInDegrees });
+            }
+        );
+
+        console.log('final touches are: ', finalTouches);
+
+        this.setState({ winnerFound: true, trackedTouches: finalTouches });
+        // for each other touch, calculate the angle relative to the base line
+        // order each identier/angle combination
+        // assign each touch a turn order
     }
 
     drawCircles() {
-        const radius = CIRCLE_SIZE / 2.0;
-
         return _.map(this.state.trackedTouches, (touch, id) => {
-            const { x, y } = touch;
-            const circleStyle = [
-                styles.circle,
-                {
-                    transform: [
-                        { translateX: x - radius },
-                        { translateY: y - radius }
-                    ]
-                }
-            ];
-            return <View key={id} style={circleStyle} />;
+            const { x, y, winner, angle } = touch;
+            return (
+                <GrowingCircle
+                    key={id}
+                    x={x}
+                    y={y}
+                    lastUpdate={1}
+                    isWinner={winner}
+                    angle={angle}
+                />
+            );
         });
-        // if (this.state.trackedTouches.length) {
-        //     const circleStyle = [
-        //         styles.circle,
-        //         {
-        //             transform: [
-        //                 {
-        //                     translateX:
-        //                         this.state.trackedTouches[0].x -
-        //                         CIRCLE_SIZE / 2.0
-        //                 },
-        //                 {
-        //                     translateY:
-        //                         this.state.trackedTouches[0].y -
-        //                         CIRCLE_SIZE / 2.0
-        //                 },
-        //                 { rotate: '0deg' },
-        //                 { scale: 1 }
-        //             ]
-        //         }
-        //     ];
-        //     return <View style={circleStyle} />;
-        // }
+    }
+
+    drawCenter() {
+        if (this.state.center) {
+            return (
+                <GrowingCircle
+                    x={this.state.center[0]}
+                    y={this.state.center[1]}
+                    lastUpdate={1}
+                    isWinner={false}
+                />
+            );
+        }
+    }
+
+    handlePress() {
+        this.setState({ lastUpdate: this.state.lastUpdate + 1 });
     }
 
     render() {
-        // const circleStyle = this.state.init
-        //     ? [
-        //           styles.circle,
-        //           {
-        //               transform: [
-        //                   { translateX: this.state.x },
-        //                   { translateY: this.state.y },
-        //                   { rotate: '0deg' },
-        //                   { scale: this.state.circleScale }
-        //               ],
-        //               backgroundColor: 'yellow'
-        //           }
-        //       ]
-        //     : styles.circle;
-
         return (
-            <View style={styles.main} {...this._panResponder.panHandlers}>
-                {/* <Animated.View
+            <View style={styles.container}>
+                <View
                     onLayout={this._handleLayout}
-                    style={circleStyle}
+                    style={styles.main}
                     {...this._panResponder.panHandlers}
-                /> */}
-                {this.drawCircles()}
-                {/* <View style={styles.touch} /> */}
+                >
+                    {this.drawCircles()}
+                </View>
+                <Button
+                    title="Reset"
+                    style={styles.button}
+                    onPress={this.reset}
+                />
             </View>
         );
     }
@@ -182,11 +250,15 @@ export default class TurnScreen extends React.Component {
 const MAX_CIRCLE_SCALE = 1.75;
 const CIRCLE_SCALE_DURATION = 3000; // in milliseconds
 const CIRCLE_SIZE = 80;
+const TIME_TO_PICK = 5000; // amount of time before turn-order is locked in.
 
 const styles = StyleSheet.create({
     main: {
         flex: 1,
         backgroundColor: 'blue'
+    },
+    container: {
+        flex: 1
     },
     touch: {
         flex: 1,
@@ -200,5 +272,8 @@ const styles = StyleSheet.create({
         borderRadius: CIRCLE_SIZE / 2,
         position: 'absolute',
         backgroundColor: 'purple'
+    },
+    button: {
+        height: 100
     }
 });
