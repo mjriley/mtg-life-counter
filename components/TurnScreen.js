@@ -11,6 +11,11 @@ function getRandomNumberBetween(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
+/**
+ * The purpose of this screen is to record the number of users that want to play in a game.
+ * Each player will touch the screen, and after a specified period of time, we will then examine the number of touches
+ * to figure out the final game layout.
+ */
 export default class TurnScreen extends React.Component {
     constructor(props) {
         super(props);
@@ -31,17 +36,28 @@ export default class TurnScreen extends React.Component {
         });
 
         this.state = {
-            trackedTouches: {},
+            touches: {},
             winnerFound: false,
-            lastUpdate: 0
+            lastTouch: 0
         };
     }
 
     reset() {
         this.setState({
             winnerFound: false,
-            trackedTouches: {}
+            touches: {},
+            lastTouch: 0
         });
+    }
+
+    startTimer() {
+        this.timer = setTimeout(this.calculateTurns, TIME_TO_PICK);
+        this.setState({ lastTouch: new Date().getTime() });
+    }
+
+    resetTimer() {
+        clearTimeout(this.timer);
+        this.startTimer();
     }
 
     _handleResponderGrant(e, gestureState) {
@@ -54,7 +70,7 @@ export default class TurnScreen extends React.Component {
         this.timer = setTimeout(this.calculateTurns, TIME_TO_PICK);
 
         this.setState({
-            trackedTouches: {
+            touches: {
                 [identifier]: { x, y, winner: false }
             }
         });
@@ -77,7 +93,20 @@ export default class TurnScreen extends React.Component {
             ])
         );
 
-        this.setState({ trackedTouches: touches });
+        // determine if a new identifier was added to the touches
+        // if so, we need to reset the duration for the circle
+        const oldIds = _.keys(this.state.touches);
+        const pendingIds = _.map(e.nativeEvent.touches, touch =>
+            touch.identifier.toString()
+        );
+        const newIds = _.filter(pendingIds, id => !_.includes(oldIds, id));
+
+        if (newIds.length) {
+            // a new touch began, so we need to reset the animation
+            this.resetTimer();
+        }
+
+        this.setState({ touches });
     }
 
     _handleResponderRelease(e, gestureState) {
@@ -90,40 +119,36 @@ export default class TurnScreen extends React.Component {
             this.timer = null;
         }
 
-        this.setState({ winnerFound: false, trackedTouches: {} });
+        this.setState({ winnerFound: false, touches: {} });
     }
 
     calculateTurns() {
-        const identifiers = _.keys(this.state.trackedTouches);
+        const identifiers = _.keys(this.state.touches);
         const winningIndex = getRandomNumberBetween(0, identifiers.length);
         const winningId = identifiers[winningIndex];
-        let winningEntry = this.state.trackedTouches[winningId];
+        let winningEntry = this.state.touches[winningId];
 
-        const finalTouches = _.mapValues(
-            this.state.trackedTouches,
-            (touch, key) => {
-                if (key === winningId) {
-                    return _.assign(winningEntry, { winner: true, angle: 0 });
-                }
-
-                return touch;
+        const finalTouches = _.mapValues(this.state.touches, (touch, key) => {
+            if (key === winningId) {
+                return _.assign(winningEntry, { winner: true, angle: 0 });
             }
-        );
 
-        this.setState({ winnerFound: true, trackedTouches: finalTouches });
+            return touch;
+        });
+
+        this.setState({ winnerFound: true, touches: finalTouches });
     }
 
     drawCircles() {
-        return _.map(this.state.trackedTouches, (touch, id) => {
+        return _.map(this.state.touches, (touch, id) => {
             const { x, y, winner, angle } = touch;
             return (
                 <GrowingCircle
                     key={id}
                     x={x}
                     y={y}
-                    lastUpdate={1}
-                    isWinner={winner}
-                    angle={angle}
+                    lastUpdate={this.state.lastTouch}
+                    duration={TIME_TO_PICK}
                 />
             );
         });
@@ -142,7 +167,6 @@ export default class TurnScreen extends React.Component {
 }
 
 const MAX_CIRCLE_SCALE = 1.75;
-const CIRCLE_SCALE_DURATION = 3000; // in milliseconds
 const CIRCLE_SIZE = 80;
 const TIME_TO_PICK = 5000; // amount of time before turn-order is locked in.
 

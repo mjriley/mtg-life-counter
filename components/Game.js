@@ -116,12 +116,7 @@ export default class Game extends React.Component {
     render() {
         return (
             <View style={styles.main}>
-                <NameEntry
-                    visible={this.state.showNameEntry}
-                    onClose={this.toggleNameEntry}
-                />
-                <Button title="Press Me!" onPress={this.toggleNameEntry} />
-                {/* <View style={{ flex: 1, flexDirection: 'row' }}>
+                <View style={{ flex: 1, flexDirection: 'row' }}>
                     {this.renderPlayer(0)}
                     {this.renderPlayer(1)}
                 </View>
@@ -135,7 +130,7 @@ export default class Game extends React.Component {
                     isPaused={this.state.isPaused}
                     onPass={this.passTurn}
                     onPause={this.togglePause}
-                /> */}
+                />
             </View>
         );
     }

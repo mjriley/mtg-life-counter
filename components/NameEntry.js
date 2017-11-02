@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Modal, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Modal } from 'react-native';
 
 export default class NameEntry extends React.Component {
-    constructor() {
+    constructor(props) {
+        super(props);
         this.state = {
             playerName: ''
         };
@@ -23,7 +24,10 @@ export default class NameEntry extends React.Component {
             >
                 <View style={styles.view}>
                     <Text style={styles.title}>Player Name</Text>
-                    <TextInput defaultValue="PlayerName" onChangeText={this.handleNameEntry} />
+                    <TextInput
+                        defaultValue="PlayerName"
+                        onChangeText={this.handleNameEntry}
+                    />
                 </View>
             </Modal>
         );
