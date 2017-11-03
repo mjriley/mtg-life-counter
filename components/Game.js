@@ -1,3 +1,5 @@
+'use strict';
+
 import React from 'react';
 import { View, Button } from 'react-native';
 import PlayerView from './PlayerView';
@@ -21,7 +23,8 @@ export default class Game extends React.Component {
             activePlayerIndex: 0,
             isPaused: true,
             turnTime: 0,
-            showNameEntry: false
+            showNameEntry: false,
+            horizontal: false
         };
 
         this.passTurn = this.passTurn.bind(this);
@@ -30,6 +33,16 @@ export default class Game extends React.Component {
         this.togglePause = this.togglePause.bind(this);
 
         this.toggleNameEntry = this.toggleNameEntry.bind(this);
+
+        this.handleLayout = this.handleLayout.bind(this);
+    }
+
+    handleLayout(e) {
+        // determine if we're horizontal or vertical
+        const { width, height } = e.nativeEvent.layout;
+        const horizontal = width > height;
+
+        this.setState({ horizontal });
     }
 
     componentWillUnmount() {
@@ -113,24 +126,70 @@ export default class Game extends React.Component {
         this.setState({ showNameEntry: !this.state.showNameEntry });
     }
 
+    renderPlayers() {
+        // render two main 'rows' -- if we're horizontal, then our flexdirection should be column, otherwise it should be row
+        // each row then receives the players, using the inverse flex direction
+        const mainDirection = this.state.horizontal ? 'column' : 'row';
+        const subDirection = this.state.horizontal ? 'row' : 'column';
+
+        const containerStyle = { flex: 1, flexDirection: mainDirection };
+        const rowStyle = { flex: 1, flexDirection: subDirection };
+
+        // generate an array of player indices
+        const playerIndices = _.range(this.props.numPlayers);
+        let topRow = _.slice(playerIndices, 0, playerIndices.length / 2);
+        let botRow = _.slice(playerIndices, playerIndices.length / 2);
+
+        // different orientations change clockwise behavior
+        this.state.horizontal ? botRow.reverse() : topRow.reverse();
+
+        return (
+            <View style={containerStyle}>
+                <View style={rowStyle}>
+                    {_.map(topRow, player => (
+                        <PlayerView
+                            key={player}
+                            style={styles.passive}
+                            name={player}
+                            life={40}
+                            active={false}
+                        />
+                    ))}
+                </View>
+                <View style={rowStyle}>
+                    {_.map(botRow, player => (
+                        <PlayerView
+                            key={player}
+                            style={styles.passive}
+                            name={player}
+                            life={40}
+                            active={false}
+                        />
+                    ))}
+                </View>
+            </View>
+        );
+    }
+
     render() {
         return (
-            <View style={styles.main}>
-                <View style={{ flex: 1, flexDirection: 'row' }}>
+            <View style={styles.main} onLayout={this.handleLayout}>
+                {this.renderPlayers()}
+                {/* <View style={{ flex: 1, flexDirection: 'row' }}>
                     {this.renderPlayer(0)}
                     {this.renderPlayer(1)}
                 </View>
                 <View style={{ flexDirection: 'row', flex: 1 }}>
                     {this.renderPlayer(3)}
                     {this.renderPlayer(2)}
-                </View>
-                <TurnComponent
+                </View> */}
+                {/* <TurnComponent
                     style={styles.timer}
                     time={this.state.turnTime}
                     isPaused={this.state.isPaused}
                     onPass={this.passTurn}
                     onPause={this.togglePause}
-                />
+                /> */}
             </View>
         );
     }

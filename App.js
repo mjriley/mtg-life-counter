@@ -28,7 +28,7 @@ const SimpleApp = StackNavigator(
 
 export default class App extends React.Component {
     render() {
-        return <Game />;
+        return <Game numPlayers={5} />;
         // return <SimpleApp />;
         // return <TurnScreen />;
     }
